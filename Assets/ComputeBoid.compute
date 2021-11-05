@@ -1,0 +1,69 @@
+#pragma kernel CSMain
+
+struct BoidData
+{
+    float3 position;
+    float3 direction;
+
+    float3 separationSum;
+
+    float3 cohesionSum;
+    int cohesionNum;
+
+    float3 alignmentSum;
+    int alignmentNum;
+};
+
+RWStructuredBuffer<BoidData> boids;
+
+int numberOfBoids;
+
+float boidSeparationRadius;
+float boidCohesionRadius;
+float boidAlignmentRadius;
+
+int fieldOfView;
+float boidSpeed;
+float viewLength;
+
+float separationSpeed;
+float cohesionSpeed;
+float alignmentSpeed;
+float obstacleSpeed;
+
+[numthreads(64,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    for(int i = 0; i < numberOfBoids; i++)
+    {
+        BoidData neighbour = boids[i];
+        float3 offset = neighbour.position - boids[id.x].position;
+        float3 offsetNorm = normalize(offset);
+
+        if (dot(boids[id.x].direction, offsetNorm) < fieldOfView)
+        {
+            float dist = length(offset);
+
+            if (dist > 0)
+            {
+                if (dist < boidSeparationRadius)
+                {
+                    boids[id.x].separationSum += offsetNorm / dist;
+                }
+
+                if(dist < boidCohesionRadius)
+                {
+                    boids[id.x].cohesionSum += neighbour.position;
+                    boids[id.x].cohesionNum++;
+                } 
+
+                if(dist < boidAlignmentRadius)
+                {
+                    boids[id.x].alignmentSum += neighbour.direction;
+                    boids[id.x].alignmentNum++;
+                } 
+            }
+        }
+
+    }
+}
