@@ -21,29 +21,75 @@ public class Boid : MonoBehaviour
     public float speed = 1f;
     public int index;
 
+    private bool isWrappingX = false;
+    private bool isWrappingY = false;
+    private SpriteRenderer spriteRenderer;
+
+    private void Start()
+    {
+        spriteRenderer = GetComponent<SpriteRenderer>();
+    }
+
     private void Update()
     {
         Vector3 direction = transform.up;
         direction = boidManager.separation ? Separation(direction) : direction;
         direction = boidManager.cohesion ? Cohesion(direction) : direction;
         direction = boidManager.alignment ? Alignment(direction) : direction;
-        direction = AvoidEdge(direction);
+        //direction = AvoidEdge(direction);
 
         Vector3 newPos = transform.position + (direction.normalized * boidManager.boidSpeed * Time.deltaTime);
         transform.up = direction;
 
-        if (!boundingCollider.bounds.Contains(newPos))
-        {
-            transform.Rotate(new Vector3(0, 0, 180), Space.Self);
-        }
-        else
-        {
-            transform.position = newPos;
-        }
+        // if (!boundingCollider.bounds.Contains(newPos))
+        // {
+        //     transform.Rotate(new Vector3(0, 0, 180), Space.Self);
+        // }
+        // else
+        // {
+        transform.position = newPos;
+        // }
 
         // TODO: compute check left out for run-time switching
         boidManager.computeBoidData[index].position = transform.position;
         boidManager.computeBoidData[index].direction = transform.up;
+
+        ScreenWrap();
+    }
+
+    private void ScreenWrap()
+    {
+        if (spriteRenderer.isVisible)
+        {
+            isWrappingX = false;
+            isWrappingY = false;
+            return;
+        }
+
+        if (isWrappingX && isWrappingY)
+        {
+            return;
+        }
+
+        var cam = Camera.main;
+        var viewportPosition = cam.WorldToViewportPoint(transform.position);
+        var newPosition = transform.position;
+
+        if (!isWrappingX && (viewportPosition.x > 1 || viewportPosition.x < 0))
+        {
+            newPosition.x = -newPosition.x;
+
+            isWrappingX = true;
+        }
+
+        if (!isWrappingY && (viewportPosition.y > 1 || viewportPosition.y < 0))
+        {
+            newPosition.y = -newPosition.y;
+
+            isWrappingY = true;
+        }
+
+        transform.position = newPosition;
     }
 
     private Vector3 AvoidEdge(Vector3 direction)
